@@ -10,7 +10,6 @@ from sqlalchemy import false
 from werkzeug.security import check_password_hash, generate_password_hash
 from uuid import uuid1
 import xmltodict
-import random
 import urllib.request as urllib2
 from urllib.parse import quote
 import json
@@ -30,9 +29,9 @@ app = Flask(__name__)
 CORS(app)
 ENV = 'dev'
 
-LOCAL_DB_URL = "postgresql://postgres:123456789@localHost:5432/Books"
+LOCAL_DB_URL = "postgresql://postgres:prerit@localHost:5432/Books"
 REMOTE_DB_URL = os.getenv("REMOTE_DB_URL")
-SECRET_KEY = "123456789"
+SECRET_KEY = "prerit"
 
 # Setting database configs
 if ENV == 'dev':
@@ -70,12 +69,12 @@ def user_id(userid):
         return idquery_old
 
 
-def idcounter():
-    iding = db.session.query(GrBook)
-    iding.order_by(GrBook.gr_id.desc()).first()
-    last_id = int(iding.gr_id)
-    next_id = int(last_id) + 1
-    return next_id
+# def idcounter():
+#     iding = db.session.query(GrBook)
+#     iding.order_by(GrBook.gr_id.desc()).first()
+#     last_id = int(iding.gr_id)
+#     next_id = int(last_id) + 1
+#     return next_id
 
 
 def parse_xml(request_xml):
@@ -120,10 +119,9 @@ class Ratings(db.Model):
 # Building the new recommendations model
 class NewRecs(db.Model):
     __tablename__ = 'new_recs'
-    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     book_id = db.Column(db.Integer)
-    prediction = db.Column(db.Float)
+    prediction = db.Column(db.Float,primary_key=True)
 
     def __init__(self, user_id, book_id, prediction):
         self.user_id = user_id
@@ -153,6 +151,7 @@ def index():
 
 
 # registration page
+cnt=0
 @app.route('/register', methods=["GET", "POST"])
 def register():
     # print(1)
@@ -162,13 +161,13 @@ def register():
         password_hash = generate_password_hash(password)
         # print("a")
         if username == '' or password == '':
-            # print("b")
             return render_template('register.html', message='Please include a name and/or password.')
         # print("c")
 
         if db.session.query(User).filter(User.username == username).count() == 0:
             # print("d")
-            cnt = random.randint(2,1000)
+            global cnt
+            cnt += 1
             user = User(cnt,username, password, password_hash)
             db.session.add(user)
             db.session.commit()
@@ -176,7 +175,6 @@ def register():
             session['user_id'] = user_id(session.get('username'))
             return redirect(url_for('get_profile'))
         else:
-            # print("e")
             return render_template('register.html', message='Sorry, this username is already taken.')
         # print("f")
 
